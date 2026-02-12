@@ -1,0 +1,5 @@
+{
+  "name": "Affiplayer Web",
+  "description": "A production-grade, Material Design inspired video player featuring gesture controls (brightness, volume, seek), offline playback, Picture-in-Picture, and playback speed control.",
+  "requestFramePermissions": []
+}
