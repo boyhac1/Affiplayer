@@ -12,7 +12,6 @@ export interface VideoFile {
   thumbnail?: string;
   sourceType: VideoSourceType;
   sheetName?: string; 
-  isRestricted?: boolean; // New flag for 18+ content
 }
 
 export interface PlayerState {
@@ -45,8 +44,6 @@ export interface GlobalSettings {
   enableOnlineDB: boolean; 
   googleSheetUrls: string[]; 
   savedStreams: VideoFile[]; 
-  enableRestrictedMode: boolean; // Toggle for showing 18+ content
-  restrictedPin: string | null; // PIN code for security
 }
 
 export interface GestureSensitivity {

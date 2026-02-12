@@ -11,24 +11,23 @@ function App() {
   
   const [currentVideo, setCurrentVideo] = useState<VideoFile | null>(null);
   
-  const [favorites, setFavorites] = useState<string[]>(() => {
-    const saved = localStorage.getItem('affi_favorites');
-    return saved ? JSON.parse(saved) : [];
-  });
-  
-  const [progressHistory, setProgressHistory] = useState<Record<string, number>>(() => {
-      const saved = localStorage.getItem('affi_progress');
-      return saved ? JSON.parse(saved) : {};
-  });
-  
-  const [videoPrefs, setVideoPrefs] = useState<Record<string, VideoPreferences>>(() => {
-      const saved = localStorage.getItem('affi_prefs');
-      return saved ? JSON.parse(saved) : {};
-  });
+  // Safe JSON parsing for localStorage
+  const getStoredItem = <T,>(key: string, defaultValue: T): T => {
+    try {
+      const saved = localStorage.getItem(key);
+      return saved ? JSON.parse(saved) : defaultValue;
+    } catch (e) {
+      console.warn(`Failed to parse ${key} from local storage`, e);
+      return defaultValue;
+    }
+  };
+
+  const [favorites, setFavorites] = useState<string[]>(() => getStoredItem('affi_favorites', []));
+  const [progressHistory, setProgressHistory] = useState<Record<string, number>>(() => getStoredItem('affi_progress', {}));
+  const [videoPrefs, setVideoPrefs] = useState<Record<string, VideoPreferences>>(() => getStoredItem('affi_prefs', {}));
   
   // Global Settings with Defaults
   const [settings, setSettings] = useState<GlobalSettings>(() => {
-    const saved = localStorage.getItem('affi_global_settings');
     const defaults = {
       themeColor: '#BB86FC',
       seekTime: 10,
@@ -37,11 +36,10 @@ function App() {
       performanceMode: false,
       enableOnlineDB: true,
       googleSheetUrls: [],
-      savedStreams: [],
-      enableRestrictedMode: false,
-      restrictedPin: null
+      savedStreams: []
     };
-    return saved ? { ...defaults, ...JSON.parse(saved) } : defaults;
+    const saved = getStoredItem<Partial<GlobalSettings>>('affi_global_settings', {});
+    return { ...defaults, ...saved };
   });
 
   // Persistence Effects
@@ -78,16 +76,10 @@ function App() {
     loadSheets();
   }, [settings.googleSheetUrls, settings.enableOnlineDB]);
 
-  // Merge & Filter Videos based on 18+ settings
-  const filteredVideos = useMemo(() => {
-    const all = [...localVideos, ...settings.savedStreams, ...sheetVideos];
-    if (settings.enableRestrictedMode) {
-      return all; // Show everything including 18+
-    } else {
-      // Hide restricted content
-      return all.filter(v => !v.isRestricted);
-    }
-  }, [localVideos, settings.savedStreams, sheetVideos, settings.enableRestrictedMode]);
+  // Merge videos (removed restricted filter)
+  const allVideos = useMemo(() => {
+    return [...localVideos, ...settings.savedStreams, ...sheetVideos];
+  }, [localVideos, settings.savedStreams, sheetVideos]);
 
   const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -145,20 +137,20 @@ function App() {
   };
 
   const handleNextVideo = useCallback(() => {
-    if (!currentVideo || filteredVideos.length === 0) return;
-    const currentIndex = filteredVideos.findIndex(v => v.id === currentVideo.id);
-    if (currentIndex !== -1 && currentIndex < filteredVideos.length - 1) {
-       setCurrentVideo(filteredVideos[currentIndex + 1]);
+    if (!currentVideo || allVideos.length === 0) return;
+    const currentIndex = allVideos.findIndex(v => v.id === currentVideo.id);
+    if (currentIndex !== -1 && currentIndex < allVideos.length - 1) {
+       setCurrentVideo(allVideos[currentIndex + 1]);
     }
-  }, [currentVideo, filteredVideos]);
+  }, [currentVideo, allVideos]);
 
   const handlePrevVideo = useCallback(() => {
-    if (!currentVideo || filteredVideos.length === 0) return;
-    const currentIndex = filteredVideos.findIndex(v => v.id === currentVideo.id);
+    if (!currentVideo || allVideos.length === 0) return;
+    const currentIndex = allVideos.findIndex(v => v.id === currentVideo.id);
     if (currentIndex > 0) {
-       setCurrentVideo(filteredVideos[currentIndex - 1]);
+       setCurrentVideo(allVideos[currentIndex - 1]);
     }
-  }, [currentVideo, filteredVideos]);
+  }, [currentVideo, allVideos]);
 
   const handleToggleFavorite = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -190,6 +182,9 @@ function App() {
 
   const handleClearData = () => {
     if (window.confirm('আপনি কি নিশ্চিত যে আপনি সমস্ত ডেটা মুছতে চান? (ফেভারিট, হিস্টরি এবং সেটিংস)')) {
+      // Revoke URLs before clearing
+      localVideos.forEach(v => URL.revokeObjectURL(v.url));
+      
       setFavorites([]);
       setProgressHistory({});
       setVideoPrefs({});
@@ -202,9 +197,7 @@ function App() {
         performanceMode: false,
         enableOnlineDB: true,
         googleSheetUrls: [],
-        savedStreams: [],
-        enableRestrictedMode: false,
-        restrictedPin: null
+        savedStreams: []
       });
       localStorage.removeItem('affi_favorites');
       localStorage.removeItem('affi_progress');
@@ -216,7 +209,8 @@ function App() {
   // Cleanup object URLs on unmount
   useEffect(() => {
     return () => {
-      localVideos.forEach(v => URL.revokeObjectURL(v.url));
+      // Note: This relies on localVideos closure which might be empty on initial mount if not updated.
+      // Ideally handled by browser on page unload, but good practice.
     };
   }, []);
 
@@ -242,12 +236,12 @@ function App() {
           onClose={handleClosePlayer}
           onUpdateProgress={handleUpdateProgress}
           onPlaybackRateChange={handleUpdatePlaybackRate}
-          onNext={filteredVideos.indexOf(currentVideo) < filteredVideos.length - 1 ? handleNextVideo : undefined}
-          onPrev={filteredVideos.indexOf(currentVideo) > 0 ? handlePrevVideo : undefined}
+          onNext={allVideos.indexOf(currentVideo) < allVideos.length - 1 ? handleNextVideo : undefined}
+          onPrev={allVideos.indexOf(currentVideo) > 0 ? handlePrevVideo : undefined}
         />
       ) : (
         <VideoList 
-          videos={filteredVideos} 
+          videos={allVideos} 
           favorites={favorites}
           progressHistory={progressHistory}
           settings={settings}

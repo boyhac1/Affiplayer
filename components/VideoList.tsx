@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { VideoFile, SortOption, GlobalSettings } from '../types';
 import { Icons } from './Icons';
 
@@ -125,11 +125,6 @@ export const VideoList: React.FC<VideoListProps> = ({
   // Sheet Management State
   const [newSheetUrl, setNewSheetUrl] = useState('');
 
-  // Pin Code State
-  const [showPinModal, setShowPinModal] = useState(false);
-  const [pinInput, setPinInput] = useState('');
-  const [isSettingNewPin, setIsSettingNewPin] = useState(false);
-
   const filteredVideos = useMemo(() => {
     let result = [...videos];
     if (search) {
@@ -177,46 +172,6 @@ export const VideoList: React.FC<VideoListProps> = ({
 
   const updateSetting = <K extends keyof GlobalSettings>(key: K, value: GlobalSettings[K]) => {
       onSettingsChange({ ...settings, [key]: value });
-  };
-
-  // Pin Logic
-  const handleRestrictedToggle = () => {
-    if (settings.enableRestrictedMode) {
-        // Turning OFF - No PIN needed to hide (for safety), or maybe require PIN?
-        // Let's require PIN to toggle OFF as well if strict, but typically turning OFF visibility is instant, 
-        // turning ON requires auth.
-        // Actually, let's just turn it OFF immediately for quick hide.
-        updateSetting('enableRestrictedMode', false);
-    } else {
-        // Turning ON
-        setPinInput('');
-        setShowPinModal(true);
-        setIsSettingNewPin(!settings.restrictedPin);
-    }
-  };
-
-  const handlePinSubmit = (e: React.FormEvent) => {
-      e.preventDefault();
-      if (isSettingNewPin) {
-          if (pinInput.length >= 4) {
-              onSettingsChange({
-                  ...settings,
-                  restrictedPin: pinInput,
-                  enableRestrictedMode: true
-              });
-              setShowPinModal(false);
-          } else {
-              alert("PIN must be at least 4 digits");
-          }
-      } else {
-          if (pinInput === settings.restrictedPin) {
-              updateSetting('enableRestrictedMode', true);
-              setShowPinModal(false);
-          } else {
-              alert("Incorrect PIN");
-              setPinInput('');
-          }
-      }
   };
 
   return (
@@ -274,7 +229,7 @@ export const VideoList: React.FC<VideoListProps> = ({
         </div>
       </div>
 
-      {/* Settings Modal - Enhanced for Database */}
+      {/* Settings Modal */}
       {showSettings && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm animate-fade-in p-4 overflow-y-auto">
            <div className="bg-[#1E1E1E] w-full max-w-md rounded-2xl border border-white/10 shadow-2xl relative flex flex-col max-h-[90vh]">
@@ -334,28 +289,6 @@ export const VideoList: React.FC<VideoListProps> = ({
                     )}
                  </div>
 
-                 {/* 18+ Feature (Restricted Mode) */}
-                 <div>
-                    <h3 className="text-sm font-medium text-white/50 uppercase tracking-wider mb-4">সিকিউরিটি</h3>
-                    <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4 flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                            <div className="p-2 bg-red-500/20 rounded-lg">
-                                {settings.enableRestrictedMode ? <Icons.Unlock className="w-5 h-5 text-red-400" /> : <Icons.Lock className="w-5 h-5 text-white/60" />}
-                            </div>
-                            <div>
-                                <div className="text-sm font-medium text-red-100">১৮+ রেস্ট্রিক্টেড মোড</div>
-                                <div className="text-xs text-white/40">লুকানো কন্টেন্ট দেখার জন্য</div>
-                            </div>
-                        </div>
-                        <button 
-                            onClick={handleRestrictedToggle}
-                            className={`w-11 h-6 rounded-full relative transition-colors ${settings.enableRestrictedMode ? 'bg-red-500' : 'bg-white/10'}`}
-                        >
-                            <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${settings.enableRestrictedMode ? 'left-6' : 'left-1'}`} />
-                        </button>
-                    </div>
-                 </div>
-
                  {/* Theme Color */}
                  <div>
                     <h3 className="text-sm font-medium text-white/50 uppercase tracking-wider mb-4">থিম ও কালার</h3>
@@ -396,44 +329,6 @@ export const VideoList: React.FC<VideoListProps> = ({
         </div>
       )}
 
-      {/* PIN Code Modal */}
-      {showPinModal && (
-          <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/90 backdrop-blur-md animate-fade-in p-4">
-              <div className="bg-[#1E1E1E] w-full max-w-sm p-6 rounded-2xl border border-white/10 shadow-2xl flex flex-col items-center">
-                  <div className="mb-4 p-3 bg-white/5 rounded-full">
-                      <Icons.Lock className="w-8 h-8 text-primary" />
-                  </div>
-                  <h3 className="text-lg font-bold mb-1">
-                      {isSettingNewPin ? "নতুন পিন সেট করুন" : "পিন কোড দিন"}
-                  </h3>
-                  <p className="text-xs text-white/40 mb-6 text-center">
-                      {isSettingNewPin ? "সিকিউর ফোল্ডার অ্যাক্সেস করার জন্য একটি পিন সেট করুন।" : "১৮+ কন্টেন্ট দেখার জন্য আপনার পিন দিন।"}
-                  </p>
-
-                  <form onSubmit={handlePinSubmit} className="w-full space-y-4">
-                      <input 
-                          type="password" 
-                          autoFocus
-                          value={pinInput}
-                          onChange={e => {
-                              if (/^\d*$/.test(e.target.value) && e.target.value.length <= 6) {
-                                  setPinInput(e.target.value);
-                              }
-                          }}
-                          className="w-full bg-black/40 border border-white/20 rounded-xl py-3 px-4 text-center text-2xl tracking-[0.5em] focus:outline-none focus:border-primary transition font-mono"
-                          placeholder="••••"
-                      />
-                      <div className="flex gap-3">
-                          <button type="button" onClick={() => { setShowPinModal(false); setPinInput(''); }} className="flex-1 py-3 rounded-xl bg-white/5 hover:bg-white/10 text-white/70 transition">বাতিল</button>
-                          <button type="submit" className="flex-1 py-3 rounded-xl bg-primary text-black font-bold transition shadow-lg shadow-primary/20">
-                              {isSettingNewPin ? "সেট করুন" : "আনলক"}
-                          </button>
-                      </div>
-                  </form>
-              </div>
-          </div>
-      )}
-
       {/* Content */}
       <div className="flex-1 overflow-y-auto p-4 no-scrollbar">
         {filteredVideos.length === 0 ? (
@@ -451,9 +346,6 @@ export const VideoList: React.FC<VideoListProps> = ({
                     <p className="text-lg font-medium">কোনো মিডিয়া পাওয়া যায়নি</p>
                     <div className="flex flex-col gap-2 items-center text-center">
                         <p className="text-sm">ফাইল ইম্পোর্ট করুন অথবা সেটিংসে ডাটাবেস লিংক দিন</p>
-                        {settings.googleSheetUrls.length > 0 && !settings.enableRestrictedMode && (
-                             <p className="text-xs text-white/30 mt-2">(কিছু কন্টেন্ট ১৮+ মোডে লুকানো থাকতে পারে)</p>
-                        )}
                     </div>
                 </>
             )}
@@ -467,7 +359,6 @@ export const VideoList: React.FC<VideoListProps> = ({
               const isAudio = video.type.startsWith('audio');
               const isSheet = video.sourceType === 'googlesheet';
               const isStream = video.sourceType === 'stream';
-              const isRestricted = video.isRestricted;
 
               return (
                 <div 
@@ -482,7 +373,6 @@ export const VideoList: React.FC<VideoListProps> = ({
                     <div className="absolute top-2 left-2 z-20 flex flex-col gap-1">
                         {isSheet && <span className="bg-green-600/90 text-white text-[10px] px-2 py-0.5 rounded shadow-sm backdrop-blur-md self-start">DATABASE</span>}
                         {isStream && <span className="bg-blue-600/90 text-white text-[10px] px-2 py-0.5 rounded shadow-sm backdrop-blur-md self-start">STREAM</span>}
-                        {isRestricted && <span className="bg-red-600/90 text-white text-[10px] px-2 py-0.5 rounded shadow-sm backdrop-blur-md self-start">18+</span>}
                     </div>
 
                     {/* Delete Stream Button (Only for streams, not local or sheet items managed via settings) */}

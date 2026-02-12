@@ -18,7 +18,7 @@ export const fetchSheetData = async (sheetUrl: string): Promise<VideoFile[]> => 
     const text = await response.text();
     const rows = text.split('\n').slice(1); // Skip header row
     
-    // Columns: Name, URL, Thumbnail, Category/Tag
+    // Columns: Name, URL, Thumbnail
     
     return rows.map((row, index) => {
       // CSV regex to handle commas inside quotes
@@ -29,10 +29,6 @@ export const fetchSheetData = async (sheetUrl: string): Promise<VideoFile[]> => 
       const name = cols[0] || `Video ${index + 1}`;
       const url = cols[1];
       const thumbnail = cols[2] || undefined;
-      const tag = cols[3] ? cols[3].toLowerCase() : '';
-
-      // Check for restricted tags
-      const isRestricted = tag.includes('18+') || tag.includes('adult') || tag.includes('restricted');
 
       return {
         id: `sheet-${sheetId}-${index}`,
@@ -43,8 +39,7 @@ export const fetchSheetData = async (sheetUrl: string): Promise<VideoFile[]> => 
         lastModified: Date.now(),
         sourceType: 'googlesheet',
         sheetName: 'Online DB', 
-        thumbnail: thumbnail,
-        isRestricted: isRestricted
+        thumbnail: thumbnail
       } as VideoFile;
     }).filter((v): v is VideoFile => v !== null);
 
