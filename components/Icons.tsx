@@ -32,7 +32,14 @@ import {
   Download,
   RefreshCw,
   Link,
-  Code
+  Code,
+  List,
+  Grid,
+  History,
+  Moon,
+  LayoutGrid,
+  ListVideo,
+  Check
 } from 'lucide-react';
 
 export const Icons = {
@@ -69,5 +76,12 @@ export const Icons = {
   Download,
   Refresh: RefreshCw,
   Link,
-  Code
+  Code,
+  List,
+  Grid,
+  History,
+  Moon,
+  LayoutGrid,
+  ListVideo,
+  Check
 };

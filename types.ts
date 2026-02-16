@@ -28,12 +28,16 @@ export interface PlayerState {
   videoFit: 'contain' | 'cover' | 'fill';
   isLooping: boolean;
   scale: number; 
+  sleepTimer: number | null; // Minutes remaining, null if off
+  error: string | null;
 }
 
 export interface VideoPreferences {
   playbackRate: number;
   subtitlesEnabled: boolean;
 }
+
+export type ViewMode = 'grid' | 'list';
 
 export interface GlobalSettings {
   themeColor: string;
@@ -44,6 +48,7 @@ export interface GlobalSettings {
   enableOnlineDB: boolean; 
   googleSheetUrls: string[]; 
   savedStreams: VideoFile[]; 
+  viewMode: ViewMode;
 }
 
 export interface GestureSensitivity {
@@ -61,3 +66,16 @@ export enum GestureAction {
 }
 
 export type SortOption = 'date' | 'name' | 'size' | 'source';
+
+export type NavTab = 'library' | 'favorites' | 'history';
+
+export interface ToastMessage {
+  id: string;
+  type: 'success' | 'error' | 'info';
+  message: string;
+}
+
+export interface CachedSheetData {
+  timestamp: number;
+  data: VideoFile[];
+}

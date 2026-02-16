@@ -16,12 +16,14 @@ export const fetchSheetData = async (sheetUrl: string): Promise<VideoFile[]> => 
     if (!response.ok) throw new Error('Failed to fetch sheet');
     
     const text = await response.text();
-    const rows = text.split('\n').slice(1); // Skip header row
-    
-    // Columns: Name, URL, Thumbnail
+    // Split by newline, handling both \r\n and \n
+    const rows = text.split(/\r?\n/).slice(1); 
     
     return rows.map((row, index) => {
-      // CSV regex to handle commas inside quotes
+      // Basic CSV parser that handles quotes properly
+      // Regex: Matches quoted strings OR non-comma sequences
+      const regex = /(".*?"|[^",\s]+)(?=\s*,|\s*$)/g;
+      // This is a simplified split logic for robustness
       const cols = row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(c => c.trim().replace(/^"|"$/g, ''));
       
       if (cols.length < 2 || !cols[1]) return null; 
@@ -29,6 +31,8 @@ export const fetchSheetData = async (sheetUrl: string): Promise<VideoFile[]> => 
       const name = cols[0] || `Video ${index + 1}`;
       const url = cols[1];
       const thumbnail = cols[2] || undefined;
+      
+      if (!url.startsWith('http')) return null; // Invalid URL check
 
       return {
         id: `sheet-${sheetId}-${index}`,
